@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="todo-container">
+        <h1>To-Do List</h1>
+        <button id="openTaskFormBtn">Add Task</button>
+        <div class="task-list-container">
+            <ul id="taskList"></ul>
+        </div>
+    </div>
+
+    <!-- Task Popup Modal -->
+    <div id="taskPopup" class="popup-container">
+        <div class="popup-content">
+            <form id="taskForm">
+                <span class="close-btn">&times;</span>
+                <h2>Add New Task</h2>
+                <input type="text" id="taskTitle" placeholder="Task Title">
+                <textarea id="taskDescription" placeholder="Task Description"></textarea>
+                <input type="date" id="taskDate">
+                <button id="cancelBtn" type="button">Cancel</button>
+                <button id="saveTaskBtn" type="submit">Save Task</button>
+            
+            </form>
+        </div>
+    </div>
+    <dialog id="deleteTaskDialog">
+        <form method="dialog">
+            <p class="deleteMessageText">Delete Task?</p>
+            <div class="confirmCloseDialogBtnContainer">
+                <button id="cancelDeleteBtn" class="btn cancelDialogBtn" onclick="cancelDialog(this)">
+                    Cancel
+                </button>
+                <button id="confirmDeleteBtn" class="btn">
+                    Delete
+                </button>
+            </div>
+        </form>
+    </dialog>
+    <dialog id="confirmCloseDialog">
+        <form method="dialog">
+            <p class="discard-message-text">Discard unsaved changes?</p>
+            <div class="confirm-close-dialog-btn-container">
+            <button id="cancelDiscardBtn" class="btn cancelDialogBtn" onclick="cancelDialog()">
+                Cancel
+            </button>
+            <button id="discard-btn" class="btn" onclick="discardChanges()">
+                Discard Changes
+            </button>
+            </div>
+        </form>
+        </dialog>
+
+    
+<script>
+    const taskList = document.getElementById('taskList');
+
+    const taskForm = document.getElementById('taskForm');
+    const popupContainer = document.getElementById('taskPopup');
+    const openTaskFormBtn = document.getElementById('openTaskFormBtn');
+    const saveTaskBtn = document.getElementById('saveTaskBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    const titleInput = document.getElementById('taskTitle');
+    const descriptionInput = document.getElementById('taskDescription');
+    const dateInput = document.getElementById('taskDate');
+
+    const deleteDialog = document.getElementById('deleteTaskDialog');
+    const confirmCloseDialog = document.getElementById('confirmCloseDialog');
+
+    const taskData = JSON.parse(localStorage.getItem("data")) || [];
+    let currentTaskID;
+    let currentTask = {};
+
+    const reset = () => {
+        taskForm.reset();
+        currentTask = {};
+        currentTaskID = null;
+    }
+
+    const refreshList = () => {
+        taskList.innerHTML = '';
+
+        taskData.forEach(
+        ({ id, title, date, description }) => {
+            const newTask = document.createElement("li");
+            newTask.innerHTML = `
+                <div class="task" id="${id}">
+                <p><strong>Title:</strong> ${title}</p>
+                <p><strong>Date:</strong> ${date}</p>
+                <p><strong>Description:</strong> ${description}</p>
+                <button onclick="editTask(this)" type="button" class="btn">Edit</button>
+                <button onclick="confirmDeleteTask(this)" type="button" class="btn">Delete</button>
+                </div>
+            `
+            taskList.appendChild(newTask);
+        })
+    }
+
+    const saveTask = () => {
+        if(!titleInput.value.trim()){
+            alert("Please provide a title");
+            return;
+        }
+        
+        idValue = taskData.length + 1;
+        const dataArrIndex = taskData.findIndex((item) => item.id === currentTask.id);
+        const taskObj = {
+            id: `${titleInput.value}${idValue}`,
+            title: titleInput.value,
+            date: dateInput.value,
+            description: descriptionInput.value
+        }
+
+        if (dataArrIndex === -1) {
+            taskData.unshift(taskObj);
+        } else {
+            taskData[dataArrIndex] = taskObj;
+        }
+
+        localStorage.setItem("data", JSON.stringify(taskData));
+        popupContainer.classList.toggle("show");
+        refreshList();
+        reset();
+
+    }
+
+    const editTask = (buttonEl) => {
+        currentTaskID = buttonEl.parentElement.id;
+        const taskIndex = taskData.findIndex((item) => item.id === currentTaskID);
+        currentTask = taskData[taskIndex];
+
+        titleInput.value = currentTask.title;
+        descriptionInput.value = currentTask.description;
+        dateInput.value = currentTask.date;
+
+        popupContainer.classList.toggle("show");
+
+    }
+
+    const confirmDeleteTask = (buttonEl) => {
+        currentTaskID = buttonEl.parentElement.id;
+        deleteTaskDialog.showModal();
+    }
+
+    const cancelDialog = () => {
+        deleteDialog.close();
+        confirmCloseDialog.close();
+    }
+
+    const discardChanges = () => {
+        deleteDialog.close();
+        confirmCloseDialog.close();
+        popupContainer.classList.toggle("show");
+        reset();
+    }
+
+    confirmDeleteBtn.addEventListener("click", () => {
+  
+        const taskIndex = taskData.findIndex((item) => item.id === currentTaskID);
+        
+        if (taskIndex !== -1) {
+            taskData.splice(taskIndex, 1);
+        }
+        
+        refreshList();
+
+        localStorage.setItem("data", JSON.stringify(taskData));
+        deleteTaskDialog.close(); 
+        currentTaskID = null; 
+    });
+
+    openTaskFormBtn.addEventListener("click", () => {
+        popupContainer.classList.toggle("show");
+    });
+
+    cancelBtn.addEventListener("click", () => {
+        const formInputsContainValues = titleInput.value || dateInput.value || descriptionInput.value;
+        const formInputValuesUpdated = titleInput.value !== currentTask.title || dateInput.value !== currentTask.date || descriptionInput.value !== currentTask.description;
+
+        if (formInputsContainValues && formInputValuesUpdated) {
+            confirmCloseDialog.showModal();
+        } else {
+            popupContainer.classList.toggle("show");
+            reset();
+        }
+    })
+
+    taskForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        saveTask();
+    });
+
+</script>
+</body>
+</html>
